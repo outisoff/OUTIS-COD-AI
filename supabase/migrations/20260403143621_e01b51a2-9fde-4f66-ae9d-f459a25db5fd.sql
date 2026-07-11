@@ -1,0 +1,1 @@
+UPDATE profiles SET is_approved = true WHERE email = 'outis.off@gmail.com';

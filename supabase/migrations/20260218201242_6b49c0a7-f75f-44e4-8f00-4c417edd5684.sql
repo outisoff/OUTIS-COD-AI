@@ -1,0 +1,2 @@
+ALTER TABLE public.auto_confirmation_logs DROP CONSTRAINT auto_confirmation_logs_ai_decision_check;
+ALTER TABLE public.auto_confirmation_logs ADD CONSTRAINT auto_confirmation_logs_ai_decision_check CHECK (ai_decision = ANY (ARRAY['auto_confirm'::text, 'ask_customer'::text, 'reject'::text, 'manual'::text]));

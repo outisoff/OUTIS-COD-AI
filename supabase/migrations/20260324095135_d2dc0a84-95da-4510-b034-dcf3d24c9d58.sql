@@ -1,0 +1,1 @@
+ALTER TABLE public.local_livreurs ADD COLUMN return_tarif numeric NOT NULL DEFAULT 0;

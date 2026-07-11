@@ -1,0 +1,1 @@
+UPDATE orders SET status = 'to_station' WHERE id = 'd6a2dac8-ee0d-4dad-928b-d1832371a84e';

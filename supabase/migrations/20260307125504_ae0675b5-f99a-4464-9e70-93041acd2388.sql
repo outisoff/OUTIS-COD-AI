@@ -1,0 +1,1 @@
+DELETE FROM deliveries WHERE id = 'd3877450-8cbf-4eef-b182-2759487c7fb3';

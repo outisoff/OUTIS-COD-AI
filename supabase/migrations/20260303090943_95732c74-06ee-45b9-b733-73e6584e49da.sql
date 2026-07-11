@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN ai_confirmation boolean NOT NULL DEFAULT true;

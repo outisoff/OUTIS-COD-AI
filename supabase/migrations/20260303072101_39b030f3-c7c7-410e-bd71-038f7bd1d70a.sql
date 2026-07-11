@@ -1,0 +1,1 @@
+ALTER TABLE public.product_packs ADD COLUMN price_tiers jsonb DEFAULT '[]'::jsonb;

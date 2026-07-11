@@ -1,0 +1,4 @@
+ALTER TABLE public.auto_confirmation_logs DROP CONSTRAINT auto_confirmation_logs_conversation_status_check;
+
+ALTER TABLE public.auto_confirmation_logs ADD CONSTRAINT auto_confirmation_logs_conversation_status_check 
+CHECK (conversation_status = ANY (ARRAY['pending'::text, 'awaiting_reply'::text, 'confirmed'::text, 'cancelled'::text, 'expired'::text, 'manual_takeover'::text, 'awaiting_delivery_type'::text, 'contact_agent'::text, 'completed'::text]));
