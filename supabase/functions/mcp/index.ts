@@ -6,7 +6,7 @@
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.1";
 
 // src/lib/mcp/tools/list-orders.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.110.2";
+import { createClient } from "npm:@supabase/supabase-js@^2.90.1";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z } from "npm:zod@^3.25.76";
 function client(ctx) {
@@ -35,7 +35,7 @@ var list_orders_default = defineTool({
 });
 
 // src/lib/mcp/tools/get-order.ts
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.110.2";
+import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.90.1";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z as z2 } from "npm:zod@^3.25.76";
 function client2(ctx) {
@@ -68,7 +68,7 @@ var get_order_default = defineTool2({
 });
 
 // src/lib/mcp/tools/list-products.ts
-import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.110.2";
+import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.90.1";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z as z3 } from "npm:zod@^3.25.76";
 function client3(ctx) {
@@ -97,7 +97,7 @@ var list_products_default = defineTool3({
 });
 
 // src/lib/mcp/tools/list-customers.ts
-import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.110.2";
+import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.90.1";
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z as z4 } from "npm:zod@^3.25.76";
 function client4(ctx) {
@@ -126,7 +126,7 @@ var list_customers_default = defineTool4({
 });
 
 // src/lib/mcp/tools/update-order-status.ts
-import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.110.2";
+import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.90.1";
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z as z5 } from "npm:zod@^3.25.76";
 function client5(ctx) {
@@ -156,7 +156,7 @@ var update_order_status_default = defineTool5({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "zknpztbuaiabgcatlyzk";
+var projectRef = "huzmbmyxrfdciyfivazx";
 var mcp_default = defineMcp({
   name: "outis-cod-mcp",
   title: "OUTIS COD",
