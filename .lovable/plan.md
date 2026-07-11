@@ -1,64 +1,46 @@
-# Migrate to External Supabase Project
+# Connect this project to your own external Supabase
 
-Move this project's backend from Lovable Cloud to your own Supabase project (supabase.com), so you get full dashboard access, SQL editor, and direct control over the database.
+## Why it's blocked right now
 
-## Important upfront
+The Cloud view only offers **external Supabase** when your Lovable **workspace has a Supabase organization linked**. Yours doesn't, so the only option currently shown is Lovable Cloud. Nothing is wrong with the project — the link just hasn't been made yet.
 
-- **Lovable Cloud cannot be uninstalled from this project.** Even after migrating, Cloud stays technically "attached." The practical approach is: point the app code at your external Supabase, and stop using the Cloud one.
-- **Auth users cannot be exported/re-imported** with passwords (Supabase limitation). All users will need to reset their password on the new project, OR be recreated via admin API with a temporary password.
-- **Downtime window required.** During the switchover, WhatsApp webhooks, TikTok webhooks, ZR Express sync, and auto-confirmation triggers will need their URLs updated on the external providers.
+A second thing to know: this project was **remixed**, so its `.env` still points at the *original* owner's Supabase project (`huzmbmyxrfdciyfivazx`), which you don't control. There is no backend attached to *your* copy yet, so this is a fresh setup + data migration, not a simple reconnect.
 
-## Migration steps
+## Steps you do (in the Lovable/Supabase UI)
 
-### 1. Create the external Supabase project
-- You create the project at supabase.com (choose region close to Algeria, e.g. Frankfurt).
-- You give me the new project URL, anon key, and service role key.
-- Save the DB password — you'll need it for the data dump.
+These can't be done from code — they're account/dashboard actions:
 
-### 2. Export current schema + data
-- Full DB dump from current Cloud project (schema, tables, functions, triggers, RLS policies, sequences).
-- Storage buckets (`chat-media`, `database_export_11_07_26`) exported separately as files.
+1. **Link your Supabase organization to the workspace.**
+   Workspace Settings → Integrations → connect Supabase (or the "Connect Supabase" button in the Cloud tab). Authorize your Supabase account.
+2. **Create the external Supabase project** at supabase.com. Pick a region close to your users (e.g. Frankfurt for Algeria). Save the **database password**.
+3. **Gather credentials** to hand me: project URL, anon/publishable key, service_role key, and the DB password.
 
-### 3. Restore into external Supabase
-- Run the schema dump on the new project (all 36 tables, all 25+ functions, all triggers, all RLS policies).
-- Restore GRANTs.
-- Load data.
-- Recreate storage buckets and re-upload files.
-- Recreate secrets on the new project (WASENDER_API_KEY, GOOGLE_CLIENT_ID/SECRET, ECOTRACK_WEBHOOK_SECRET, TIKTOK_WEBHOOK_SECRET, INTERNAL_FUNCTION_SECRET, WASENDER_SESSION_KEY — I'll give you the exact list; values you re-enter yourself in the Supabase dashboard).
-- Deploy all edge functions to the new project (WhatsApp webhook, auto-confirm, ZR Express create/cancel/ready, ecotrack, wasender-check, etc.).
+## Steps I do (once the org is linked and you've created the project)
 
-### 4. Reconfigure external integrations
-- Update webhook URLs in WASender, TikTok, Meta, LightFunnel, and Ecotrack dashboards to point to the new Supabase edge function URLs.
-- Reconfigure Google OAuth redirect URI on Google Cloud Console.
-- Update ZR Express and Ecotrack API webhook callbacks.
+Following the existing migration plan in `.lovable/plan.md`:
 
-### 5. Switch the app code
-- Update `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`) to the external project.
-- Update `supabase/config.toml` project_id.
-- Rebuild and republish.
+1. **Point the app at your project** — update `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`) and `supabase/config.toml` `project_id`.
+2. **Recreate the schema** — run the existing dumps (`public/database-schema-export.sql`, then `public/database-data-export.sql`) on your project: all tables, functions, triggers, RLS policies, GRANTs, sequences.
+3. **Re-attach what the public dump misses** — the `handle_new_user` trigger on `auth.users`, pg_cron jobs (tariff auto-refresh), and the hardcoded Cloud URL fallback inside `call_internal_function`.
+4. **Deploy all edge functions** to your project (WhatsApp, TikTok, Ecotrack, ZR Express, auto-confirm, etc.).
+5. **Re-enter secrets** in your Supabase dashboard: `WASENDER_API_KEY`, `WASENDER_SESSION_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ECOTRACK_WEBHOOK_SECRET`, `TIKTOK_WEBHOOK_SECRET`, `INTERNAL_FUNCTION_SECRET`.
+6. **Recreate storage buckets** (`chat-media`, `database_export_11_07_26`) and re-upload files.
+7. **Recreate users** — auth users can't be exported with passwords, so either admin-create each with a temp password or send password-reset emails.
 
-### 6. Recreate users
-- Either: admin-create each user with a temp password (I write a one-off script using the new service role key).
-- Or: send password-reset emails to all existing users.
+## Steps you finish (external providers)
 
-### 7. Verify
-- Login works.
-- Orders load.
-- WhatsApp webhook receives messages.
-- ZR Express sync fires.
-- Auto-confirmation runs.
-- Then you can stop using the Cloud project.
+Re-point webhook/callback URLs to your new edge-function URLs in: WASender, TikTok, Meta, LightFunnel, Ecotrack, ZR Express, and the Google OAuth redirect URI in Google Cloud Console.
 
-## What I need from you to start
+## Important caveats
 
-1. Create the external Supabase project at supabase.com.
-2. Send me: project URL, anon key, service_role key, DB password.
-3. Confirm you accept: (a) users must reset passwords, (b) short downtime while webhooks are re-pointed, (c) Cloud stays attached but unused.
+- **Users must reset their passwords** — Supabase can't export/import password hashes.
+- **Short downtime** while webhooks are re-pointed.
+- **Lovable Cloud stays technically attached** and can't be uninstalled; you simply stop using it once verified.
 
-## Technical notes
+## Alternative
 
-- `src/integrations/supabase/client.ts` is auto-generated from `.env` — changing env vars will regenerate the client.
-- `supabase/config.toml` project_id must be updated so future edge-function deploys go to the right project.
-- `call_internal_function` in the DB hardcodes the Cloud URL as fallback — this must be updated in a migration on the new project.
-- The `handle_new_user` trigger on `auth.users` must be re-attached on the new project (auth schema triggers aren't in the public dump).
-- pg_cron jobs (tarifs auto-refresh) must be re-scheduled on the new project.
+If full dashboard/SQL control isn't essential, **Lovable Cloud** gets the exact same app running with one click and no external account — no org link, no manual migration. I can go that route instead if you prefer speed over direct Supabase access.
+
+---
+
+**To start:** link your Supabase org (step 1) and create the project (step 2), then send me the URL + keys. Reply once that's done and I'll take over the code and migration.
