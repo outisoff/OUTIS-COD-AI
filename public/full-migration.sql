@@ -118,7 +118,16 @@ CREATE TYPE public.order_status AS ENUM (
     'ready',
     'preparing',
     'delivered_paid',
-    'delivery_failed'
+    'delivery_failed',
+    'at_station',
+    'to_station',
+    'au_bureau',
+    'Échec_de_livraison',
+    'en_livraison',
+    'alerte',
+    'failed_4',
+    'failed_5',
+    'failed_6'
 );
 
 
