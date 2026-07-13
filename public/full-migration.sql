@@ -64,7 +64,8 @@ CREATE TYPE public.customer_status AS ENUM (
     'new',
     'regular',
     'vip',
-    'blacklisted'
+    'blacklisted',
+    'at_risk'
 );
 
 
