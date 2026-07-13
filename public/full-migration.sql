@@ -1091,8 +1091,8 @@ USING (has_role(auth.uid(), 'admin'));
 -- BEGIN 20260118152411_c781cb4a-60c5-4b92-9348-5da48b541ca6.sql
 -- ============================================================
 -- Enable required extensions for cron jobs
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+-- CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+-- CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- ============================================================
 -- BEGIN 20260118204844_bc5a9cae-81e5-4bae-9b7a-8efc469d8412.sql
@@ -4434,7 +4434,7 @@ $function$;
 -- ============================================================
 
 -- Enable pg_net extension for HTTP calls from triggers
-CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
+-- CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
 
 -- Create trigger function to auto-call confirmation edge function
 CREATE OR REPLACE FUNCTION public.trigger_auto_confirm_order()
@@ -5379,12 +5379,12 @@ CREATE TRIGGER trigger_ecotrack_cancel_on_erreur
 -- ============================================================
 
 -- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+-- CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+-- CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- Grant usage
-GRANT USAGE ON SCHEMA cron TO postgres;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO postgres;
+-- GRANT USAGE ON SCHEMA cron TO postgres;
+-- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO postgres;
 
 
 -- ============================================================
@@ -8975,8 +8975,8 @@ CREATE INDEX IF NOT EXISTS idx_charges_product_ids ON public.charges USING GIN (
 -- ============================================================
 -- BEGIN 20260529213401_12dd1002-63d1-425c-a500-45e06d47a436.sql
 -- ============================================================
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+-- CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
+-- CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- ============================================================
 -- BEGIN 20260529215012_6e944f18-c9b6-4b40-a1e0-a00dd920fef8.sql
