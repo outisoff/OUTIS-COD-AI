@@ -5371,6 +5371,47 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO postgres;
 -- ============================================================
 -- BEGIN 20260223063505_32e756c4-7835-4302-a0f0-63e9950cc780.sql
 -- ============================================================
+-- Create local_livreurs table (missing from tracked migrations; recreated here before ALTERs)
+CREATE TABLE IF NOT EXISTS public.local_livreurs (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  wilaya TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.local_livreurs ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.local_livreurs TO authenticated;
+GRANT ALL ON public.local_livreurs TO service_role;
+
+CREATE POLICY "Admins can delete local livreurs"
+ON public.local_livreurs
+FOR DELETE
+USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can insert local livreurs"
+ON public.local_livreurs
+FOR INSERT
+WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can update local livreurs"
+ON public.local_livreurs
+FOR UPDATE
+USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "App users can view local livreurs"
+ON public.local_livreurs
+FOR SELECT
+USING (is_app_user(auth.uid()));
+
+CREATE TRIGGER update_local_livreurs_updated_at
+BEFORE UPDATE ON public.local_livreurs
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
 ALTER TABLE public.local_livreurs ADD COLUMN tarif numeric NOT NULL DEFAULT 0;
 
 -- ============================================================
