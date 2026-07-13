@@ -5294,7 +5294,7 @@ $function$;
 CREATE TRIGGER trigger_zr_express_cancel_on_erreur
   AFTER UPDATE ON public.orders
   FOR EACH ROW
-  WHEN (NEW.status = 'erreur' AND OLD.status IS DISTINCT FROM 'erreur')
+  WHEN (NEW.status::text = 'erreur' AND OLD.status::text IS DISTINCT FROM 'erreur')
   EXECUTE FUNCTION public.trigger_zr_express_cancel_order();
 
 
@@ -6501,7 +6501,7 @@ DROP TRIGGER IF EXISTS trigger_zr_express_ready_on_to_station ON public.orders;
 CREATE TRIGGER trigger_zr_express_ready_on_to_station
   AFTER UPDATE ON public.orders
   FOR EACH ROW
-  WHEN (NEW.status = 'to_station' AND OLD.status IS DISTINCT FROM 'to_station')
+  WHEN (NEW.status::text = 'to_station' AND OLD.status::text IS DISTINCT FROM 'to_station')
   EXECUTE FUNCTION public.trigger_zr_express_ready_order();
 
 
