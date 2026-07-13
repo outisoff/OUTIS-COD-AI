@@ -6637,12 +6637,15 @@ $$;
 -- ============================================================
 -- Backfill delivery records for existing local livreur orders with poll votes
 INSERT INTO deliveries (order_id, carrier, delivery_status, delivery_situation, last_update)
-VALUES
-  ('4c17aaa2-9668-4051-b3cb-4687ea2ba35b', 'local:Mouh', 'alerte', '🚚 Mouh: Réporter', now()),
-  ('bea3289d-7570-466d-88d2-26b3ef174b6c', 'local:Mouh', 'delivered', '🚚 Mouh: Livré', now()),
-  ('9f1ad07c-052b-40f4-84a4-b358e5865b29', 'local:Mouh', 'Échec_de_livraison', '👑 Admin: Retour', now()),
-  ('ca822f6c-91ed-4ded-9966-aaec7ea6db38', 'local:Mouh', 'delivered', '👑 Admin: Livré', now()),
-  ('2cfa975c-745c-4520-be04-bfe9d4336620', 'local:Mouh', 'delivered', '👑 Admin: Livré', now())
+SELECT v.order_id, v.carrier, v.delivery_status, v.delivery_situation, now()
+FROM (VALUES
+  ('4c17aaa2-9668-4051-b3cb-4687ea2ba35b'::uuid, 'local:Mouh', 'alerte', '🚚 Mouh: Réporter'),
+  ('bea3289d-7570-466d-88d2-26b3ef174b6c'::uuid, 'local:Mouh', 'delivered', '🚚 Mouh: Livré'),
+  ('9f1ad07c-052b-40f4-84a4-b358e5865b29'::uuid, 'local:Mouh', 'Échec_de_livraison', '👑 Admin: Retour'),
+  ('ca822f6c-91ed-4ded-9966-aaec7ea6db38'::uuid, 'local:Mouh', 'delivered', '👑 Admin: Livré'),
+  ('2cfa975c-745c-4520-be04-bfe9d4336620'::uuid, 'local:Mouh', 'delivered', '👑 Admin: Livré')
+) AS v(order_id, carrier, delivery_status, delivery_situation)
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = v.order_id)
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
