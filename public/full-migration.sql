@@ -6659,7 +6659,7 @@ WHERE carrier LIKE 'local:%' AND delivery_situation IS NOT NULL;
 -- ============================================================
 -- BEGIN 20260309224230_3a1f009b-7f51-4f73-86a6-746c25983e4e.sql
 -- ============================================================
-SELECT cron.unschedule('zr-express-sync-statuses-cron');
+SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'zr-express-sync-statuses-cron';
 SELECT cron.schedule(
   'zr-express-sync-statuses-cron',
   '*/5 * * * *',
