@@ -156,7 +156,7 @@ var update_order_status_default = defineTool5({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "huzmbmyxrfdciyfivazx";
+var projectRef = "fgndqoadnsbespjzkyhj";
 var mcp_default = defineMcp({
   name: "outis-cod-mcp",
   title: "OUTIS COD",
