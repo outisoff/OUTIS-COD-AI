@@ -44,11 +44,16 @@ SET row_security = off;
 -- Name: app_role; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.app_role AS ENUM (
-    'admin',
-    'confirmateur',
-    'stock_manager'
-);
+DO $$
+BEGIN
+  CREATE TYPE public.app_role AS ENUM (
+      'admin',
+      'confirmateur',
+      'stock_manager'
+  );
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
 
 
 --
