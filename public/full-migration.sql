@@ -3843,7 +3843,11 @@ $function$;
 -- ============================================================
 -- BEGIN 20260210164353_9ecdde95-772e-4aca-8f91-3ad78b2f63c7.sql
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='orders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+END $pub$;
 
 -- ============================================================
 -- BEGIN 20260210170925_5831015c-efa1-4180-b410-617d3eb18f8a.sql
@@ -6738,8 +6742,16 @@ CREATE POLICY "Admins can manage meta messages" ON public.meta_messages FOR ALL 
 CREATE POLICY "Confirmateurs can view meta messages" ON public.meta_messages FOR SELECT TO authenticated USING (has_role(auth.uid(), 'confirmateur'));
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.meta_conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.meta_messages;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='meta_conversations') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.meta_conversations;
+  END IF;
+END $pub$;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='meta_messages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.meta_messages;
+  END IF;
+END $pub$;
 
 
 -- ============================================================
@@ -7980,13 +7992,25 @@ DROP FUNCTION IF EXISTS public.trigger_notify_livreur();
 -- ============================================================
 -- BEGIN 20260413013801_d3dda494-4512-4353-963f-f80c03a1f18c.sql
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.deliveries;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='orders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+END $pub$;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='deliveries') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.deliveries;
+  END IF;
+END $pub$;
 
 -- ============================================================
 -- BEGIN 20260413013917_2a6b7b3d-7b02-4ece-ace9-eaf49120c27a.sql
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.auto_confirmation_logs;
+DO $pub$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='auto_confirmation_logs') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.auto_confirmation_logs;
+  END IF;
+END $pub$;
 
 -- ============================================================
 -- BEGIN 20260415172100_33a634fc-1fa3-4f39-a2aa-fb0116fdd54f.sql
