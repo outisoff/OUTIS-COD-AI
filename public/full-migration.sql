@@ -6520,12 +6520,12 @@ DROP FUNCTION IF EXISTS public.trigger_zr_express_ready_order();
 -- ============================================================
 -- BEGIN 20260306173414_6dd15e36-8d65-4ce0-b0a5-d60a45d863a9.sql
 -- ============================================================
-UPDATE orders SET status = 'confirmed' WHERE id = 'd6a2dac8-ee0d-4dad-928b-d1832371a84e';
+-- UPDATE orders SET status = 'confirmed' WHERE id = 'd6a2dac8-ee0d-4dad-928b-d1832371a84e'; -- historical one-off data backfill (order does not exist in fresh DB)
 
 -- ============================================================
 -- BEGIN 20260306173420_d9c42e43-1b40-4afc-b8b7-943aa4b84d7d.sql
 -- ============================================================
-UPDATE orders SET status = 'to_station' WHERE id = 'd6a2dac8-ee0d-4dad-928b-d1832371a84e';
+-- UPDATE orders SET status = 'to_station' WHERE id = 'd6a2dac8-ee0d-4dad-928b-d1832371a84e'; -- historical one-off data backfill (order does not exist in fresh DB)
 
 -- ============================================================
 -- BEGIN 20260307125504_ae0675b5-f99a-4464-9e70-93041acd2388.sql
@@ -7670,7 +7670,7 @@ DELETE FROM deliveries WHERE id IN ('eaa9b1f8-55ef-4769-9cd0-c69abd11d632', '9a5
 -- ============================================================
 
 -- Temporarily set to confirmed then back to preparing to trigger zr-express-create-order
-UPDATE orders SET status = 'confirmed' WHERE order_number IN ('ORD-00101', 'ORD-00104');
+-- UPDATE orders SET status = 'confirmed' WHERE order_number IN ('ORD-00101', 'ORD-00104'); -- historical one-off data backfill
 
 
 -- ============================================================
@@ -7678,7 +7678,7 @@ UPDATE orders SET status = 'confirmed' WHERE order_number IN ('ORD-00101', 'ORD-
 -- ============================================================
 
 -- Now set back to preparing to trigger the ZR Express create order function
-UPDATE orders SET status = 'preparing' WHERE order_number IN ('ORD-00101', 'ORD-00104');
+-- UPDATE orders SET status = 'preparing' WHERE order_number IN ('ORD-00101', 'ORD-00104'); -- historical one-off data backfill
 
 
 -- ============================================================
