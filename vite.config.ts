@@ -1,0 +1,28 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  build: {
+    // Let Vite automatically split chunks per dynamic import (lazy routes)
+    // instead of forcing eager bundling of heavy libs like recharts/exceljs.
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+}));

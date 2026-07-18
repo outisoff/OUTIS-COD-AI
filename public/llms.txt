@@ -1,0 +1,10 @@
+# OUTIS COD
+
+> Plateforme de gestion e-commerce Cash on Delivery pour l'Algérie : commandes, livraison, stock, confirmation et suivi en temps réel.
+
+OUTIS COD est un système interne de gestion e-commerce destiné aux marchands opérant en Algérie. Il centralise la prise de commandes, la confirmation client (IA et manuelle), l'expédition via les transporteurs locaux (ZR Express, Ecotrack), le suivi des livraisons, la gestion du stock et le reporting financier.
+
+## Pages
+
+- [Accueil](/): Présentation de la plateforme OUTIS COD.
+- [Connexion](/login): Accès sécurisé pour les utilisateurs autorisés.

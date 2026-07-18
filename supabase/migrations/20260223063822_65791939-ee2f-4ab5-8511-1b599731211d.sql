@@ -1,0 +1,1 @@
+ALTER TABLE public.delivery_company_fees ADD COLUMN return_fee numeric NOT NULL DEFAULT 0;

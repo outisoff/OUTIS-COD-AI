@@ -1,0 +1,63 @@
+
+-- Drop all triggers first to avoid conflicts
+DROP TRIGGER IF EXISTS update_assignment_rules_updated_at ON public.assignment_rules;
+DROP TRIGGER IF EXISTS update_assignment_settings_updated_at ON public.assignment_settings;
+DROP TRIGGER IF EXISTS update_auto_confirmation_logs_updated_at ON public.auto_confirmation_logs;
+DROP TRIGGER IF EXISTS update_automation_settings_updated_at ON public.automation_settings;
+DROP TRIGGER IF EXISTS update_customers_updated_at ON public.customers;
+DROP TRIGGER IF EXISTS update_delivery_company_fees_updated_at ON public.delivery_company_fees;
+DROP TRIGGER IF EXISTS update_delivery_fees_updated_at ON public.delivery_fees;
+DROP TRIGGER IF EXISTS update_delivery_promotions_updated_at ON public.delivery_promotions;
+DROP TRIGGER IF EXISTS update_google_tokens_updated_at ON public.google_tokens;
+DROP TRIGGER IF EXISTS update_integrations_updated_at ON public.integrations;
+DROP TRIGGER IF EXISTS update_meta_integration_updated_at ON public.meta_integration;
+DROP TRIGGER IF EXISTS update_meta_pages_updated_at ON public.meta_pages;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+DROP TRIGGER IF EXISTS update_special_delivery_fees_2_updated_at ON public.special_delivery_fees_2;
+DROP TRIGGER IF EXISTS update_product_packs_updated_at ON public.product_packs;
+DROP TRIGGER IF EXISTS auto_assign_order_trigger ON public.orders;
+DROP TRIGGER IF EXISTS set_order_number ON public.orders;
+DROP TRIGGER IF EXISTS log_order_status ON public.orders;
+DROP TRIGGER IF EXISTS on_new_order_auto_confirm ON public.orders;
+DROP TRIGGER IF EXISTS sync_order_stock ON public.orders;
+DROP TRIGGER IF EXISTS on_order_preparing_zr_express ON public.orders;
+DROP TRIGGER IF EXISTS trigger_zr_express_cancel_on_erreur ON public.orders;
+DROP TRIGGER IF EXISTS trigger_ecotrack_cancel_on_erreur ON public.orders;
+DROP TRIGGER IF EXISTS on_order_ready_zr_express ON public.orders;
+DROP TRIGGER IF EXISTS trg_check_whatsapp_on_order ON public.orders;
+DROP TRIGGER IF EXISTS trg_notify_livreur ON public.orders;
+DROP TRIGGER IF EXISTS orders_update_customer_stats ON public.orders;
+
+-- Recreate all triggers
+CREATE TRIGGER update_assignment_rules_updated_at BEFORE UPDATE ON public.assignment_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_assignment_settings_updated_at BEFORE UPDATE ON public.assignment_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_auto_confirmation_logs_updated_at BEFORE UPDATE ON public.auto_confirmation_logs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_automation_settings_updated_at BEFORE UPDATE ON public.automation_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_delivery_company_fees_updated_at BEFORE UPDATE ON public.delivery_company_fees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_delivery_fees_updated_at BEFORE UPDATE ON public.delivery_fees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_delivery_promotions_updated_at BEFORE UPDATE ON public.delivery_promotions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_google_tokens_updated_at BEFORE UPDATE ON public.google_tokens FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_integrations_updated_at BEFORE UPDATE ON public.integrations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_meta_integration_updated_at BEFORE UPDATE ON public.meta_integration FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_meta_pages_updated_at BEFORE UPDATE ON public.meta_pages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_special_delivery_fees_2_updated_at BEFORE UPDATE ON public.special_delivery_fees_2 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_product_packs_updated_at BEFORE UPDATE ON public.product_packs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER auto_assign_order_trigger BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION auto_assign_order();
+CREATE TRIGGER set_order_number BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION generate_order_number();
+CREATE TRIGGER log_order_status AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION log_order_status_change();
+CREATE TRIGGER on_new_order_auto_confirm AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_auto_confirm_order();
+CREATE TRIGGER sync_order_stock AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION handle_order_stock_sync();
+CREATE TRIGGER on_order_preparing_zr_express AFTER INSERT OR UPDATE OF status ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_zr_express_create_order();
+CREATE TRIGGER trigger_zr_express_cancel_on_erreur AFTER UPDATE ON public.orders FOR EACH ROW WHEN ((new.status = 'erreur'::order_status) AND (old.status IS DISTINCT FROM 'erreur'::order_status)) EXECUTE FUNCTION trigger_zr_express_cancel_order();
+CREATE TRIGGER trigger_ecotrack_cancel_on_erreur AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_ecotrack_cancel_order();
+CREATE TRIGGER on_order_ready_zr_express AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_zr_express_ready();
+CREATE TRIGGER trg_check_whatsapp_on_order AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_check_whatsapp_on_order();
+CREATE TRIGGER trg_notify_livreur AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_notify_livreur();
+CREATE TRIGGER orders_update_customer_stats AFTER INSERT OR DELETE OR UPDATE OF status, total_price, customer_id ON public.orders FOR EACH ROW EXECUTE FUNCTION trigger_update_customer_stats();

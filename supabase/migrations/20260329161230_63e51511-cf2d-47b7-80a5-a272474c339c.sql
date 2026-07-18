@@ -1,0 +1,1 @@
+UPDATE integrations SET api_secret = 'test-webhook-secret-2026' WHERE id = '4176be68-4801-481d-a2b8-2b9c50f171d0' AND name = 'LightFunnel';

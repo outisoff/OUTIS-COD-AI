@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.backfill_orders_updated_at_from_history();
