@@ -40,6 +40,8 @@ import { useActiveDeliveryPromotions, calculateDiscountedFee } from '@/hooks/use
 import { useIntegrations, DELIVERY_COMPANIES } from '@/hooks/useIntegrations';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { getOrderErrorMessage } from '@/lib/errorMessages';
+import { logOrderEdits } from '@/lib/orderEditHistory';
+import { useAuth } from '@/contexts/useAuth';
 import { algeriaWilayas, communesByWilaya } from '@/data/algeriaLocations';
 import { WilayaSelect } from './WilayaSelect';
 import { CommuneSelect } from './CommuneSelect';
