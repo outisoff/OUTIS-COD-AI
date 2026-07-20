@@ -96,6 +96,37 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
     refetchOnWindowFocus: false,
   });
 
+  const editHistoryQueryKey = ['order-edit-history', order.id];
+  const editHistoryQueryFn = async () => {
+    const { data, error } = await (supabase as any)
+      .from('order_edit_history')
+      .select('id, field, old_value, new_value, label, changed_by, changed_by_user_id, created_at')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      // Table may not exist yet if migration hasn't been run — fail silently
+      return [];
+    }
+    return data as Array<{
+      id: string;
+      field: string;
+      old_value: string | null;
+      new_value: string | null;
+      label: string | null;
+      changed_by: string | null;
+      changed_by_user_id: string | null;
+      created_at: string;
+    }>;
+  };
+
+  const { data: editHistory } = useQuery({
+    queryKey: editHistoryQueryKey,
+    queryFn: editHistoryQueryFn,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const prefetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetch = () => {
     if (prefetchTimer.current) return;
