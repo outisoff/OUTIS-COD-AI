@@ -45,7 +45,8 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [dateField, setDateField] = useState<'created_at' | 'updated_at'>('created_at');
   
-  const { data: allProducts } = useProducts();
+  // Products list is only needed by the filters panel; load lazily.
+  const { data: allProducts } = useProducts(showFilters);
   // Lazy-load full orders list — only when filter panel is opened.
   // Dashboard stats use lighter aggregated queries that don't depend on this.
   const { data: allOrders } = useOrders(showFilters);
@@ -79,22 +80,7 @@ export default function Dashboard() {
     return new Intl.NumberFormat('fr-DZ').format(value) + ' DA';
   };
 
-  // Calculate low stock products from real data
-  const lowStockProducts = allProducts?.filter(p => 
-    (p.current_stock - p.reserved_stock) <= p.reorder_level
-  ).map(p => ({
-    id: p.id,
-    sku: p.sku,
-    name: p.name,
-    category: p.category,
-    purchasePrice: Number(p.purchase_price),
-    sellingPrice: Number(p.selling_price),
-    currentStock: p.current_stock,
-    reservedStock: p.reserved_stock,
-    reorderLevel: p.reorder_level,
-    createdAt: new Date(p.created_at),
-    updatedAt: new Date(p.updated_at),
-  })) || [];
+
 
   const { profileMap } = useProfilesAndRoles();
   const userName = (user?.id && profileMap[user.id])
