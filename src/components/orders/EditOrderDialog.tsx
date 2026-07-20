@@ -40,6 +40,8 @@ import { useActiveDeliveryPromotions, calculateDiscountedFee } from '@/hooks/use
 import { useIntegrations, DELIVERY_COMPANIES } from '@/hooks/useIntegrations';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { getOrderErrorMessage } from '@/lib/errorMessages';
+import { logOrderEdits } from '@/lib/orderEditHistory';
+import { useAuth } from '@/contexts/useAuth';
 import { algeriaWilayas, communesByWilaya } from '@/data/algeriaLocations';
 import { WilayaSelect } from './WilayaSelect';
 import { CommuneSelect } from './CommuneSelect';
@@ -173,6 +175,7 @@ export function EditOrderDialog({ order, confirmationOnly = false, expeditionOnl
   const addItemButtonRef = useRef<HTMLButtonElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: products } = useProducts();
   const { data: stores } = useActiveStores();
   const { data: deliveryFees } = useDeliveryFees();
@@ -526,6 +529,30 @@ export function EditOrderDialog({ order, confirmationOnly = false, expeditionOnl
           if (error) throw error;
         }
       }
+
+      // Log edit history entries (who / what / when) — non-blocking
+      await logOrderEdits(
+        order.id,
+        order as any,
+        {
+          status: data.status,
+          customer_name: data.customer_name,
+          customer_phone: data.customer_phone,
+          customer_address: data.customer_address,
+          wilaya: data.wilaya,
+          commune: data.commune || null,
+          store_id: data.store_id || null,
+          delivery_type: data.delivery_type,
+          delivery_company: data.delivery_company || null,
+          delivery_fee: data.delivery_fee,
+          discount: data.discount || 0,
+          notes: data.notes || null,
+          total_price: total,
+        },
+        data.items as any,
+        user?.id ?? null,
+        user?.email ?? null,
+      );
 
       // If delivery company changed, cancel at old company then ship to new one
       // ONLY auto-ship if order is already in a shipping status (preparing+), NOT for confirmed/new orders

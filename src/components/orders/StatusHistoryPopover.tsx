@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { History, User, Bot, Truck, Shield, Loader2 } from 'lucide-react';
+import { History, User, Bot, Truck, Shield, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -96,6 +96,37 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
     refetchOnWindowFocus: false,
   });
 
+  const editHistoryQueryKey = ['order-edit-history', order.id];
+  const editHistoryQueryFn = async () => {
+    const { data, error } = await (supabase as any)
+      .from('order_edit_history')
+      .select('id, field, old_value, new_value, label, changed_by, changed_by_user_id, created_at')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      // Table may not exist yet if migration hasn't been run — fail silently
+      return [];
+    }
+    return data as Array<{
+      id: string;
+      field: string;
+      old_value: string | null;
+      new_value: string | null;
+      label: string | null;
+      changed_by: string | null;
+      changed_by_user_id: string | null;
+      created_at: string;
+    }>;
+  };
+
+  const { data: editHistory } = useQuery({
+    queryKey: editHistoryQueryKey,
+    queryFn: editHistoryQueryFn,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const prefetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetch = () => {
     if (prefetchTimer.current) return;
@@ -103,6 +134,11 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
       queryClient.prefetchQuery({
         queryKey: historyQueryKey,
         queryFn: historyQueryFn,
+        staleTime: 5 * 60 * 1000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: editHistoryQueryKey,
+        queryFn: editHistoryQueryFn,
         staleTime: 5 * 60 * 1000,
       });
       prefetchTimer.current = null;
@@ -159,10 +195,39 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
       user_role = 'user';
     }
 
-    return { ...h, user_name, user_role };
+    return { ...h, user_name, user_role, _kind: 'status' as const };
   });
 
-  const historyCount = processedHistory?.length || 0;
+  // Process edit history entries with same user attribution logic
+  const processedEdits = editHistory?.map(e => {
+    let user_name = '';
+    let user_role = '';
+    if (e.changed_by === 'IA' || (e.changed_by && e.changed_by.startsWith('IA'))) {
+      user_name = 'IA';
+      user_role = 'ai';
+    } else if (e.changed_by_user_id) {
+      user_name = profileMap[e.changed_by_user_id] || e.changed_by || 'Utilisateur';
+      user_role = roleMap[e.changed_by_user_id] || 'user';
+    } else if (e.changed_by) {
+      user_name = e.changed_by;
+      user_role = 'user';
+    } else {
+      user_name = 'Système';
+      user_role = 'user';
+    }
+    return { ...e, user_name, user_role, _kind: 'edit' as const };
+  });
+
+  // Merge & sort by created_at desc
+  type TimelineEntry =
+    | (NonNullable<typeof processedHistory>[number])
+    | (NonNullable<typeof processedEdits>[number]);
+  const timeline: TimelineEntry[] = [
+    ...(processedHistory || []),
+    ...(processedEdits || []),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const historyCount = timeline.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -196,20 +261,63 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : historyCount === 0 ? (
-              <div className="text-xs text-muted-foreground text-center py-6">Aucun changement de statut</div>
+              <div className="text-xs text-muted-foreground text-center py-6">Aucun historique</div>
             ) : (
-              processedHistory?.map((h, idx) => {
+              timeline.map((h, idx) => {
+                const isLast = idx === timeline.length - 1;
+                const date = new Date(h.created_at);
+                const ts = `${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+
+                const userChip = h.user_name && (
+                  <span className="text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shrink-0 whitespace-nowrap">
+                    {h.user_role === 'ai' ? <Bot className="h-2.5 w-2.5 shrink-0" />
+                      : h.user_role === 'delivery' ? <Truck className="h-2.5 w-2.5 shrink-0" />
+                      : h.user_role === 'admin' ? <Shield className="h-2.5 w-2.5 shrink-0" />
+                      : <User className="h-2.5 w-2.5 shrink-0" />}
+                    {h.user_role === 'ai'
+                      ? 'IA'
+                      : h.user_role === 'delivery' && (h as any).changed_by?.startsWith?.('Livreur:')
+                        ? `Livreur : ${h.user_name}`
+                        : h.user_name}
+                  </span>
+                );
+
+                if (h._kind === 'edit') {
+                  return (
+                    <div key={`e-${h.id}`} className={`relative flex gap-3 ${isLast ? 'pb-1' : 'pb-3'}`}>
+                      <div className="flex flex-col items-center">
+                        <div className="h-3 w-3 rounded-full bg-gradient-to-b from-slate-400 to-slate-500 shadow-sm ring-2 ring-white dark:ring-gray-900 shrink-0 mt-1" />
+                        {!isLast && <div className="w-0.5 flex-1 bg-border/60 mt-1" />}
+                      </div>
+                      <div className="flex-1 bg-gradient-to-br from-slate-50 to-gray-50/50 dark:from-slate-950/30 dark:to-gray-950/20 rounded-xl p-2.5 border border-slate-200/70 dark:border-slate-800/50 shadow-sm mb-0.5">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-slate-500 text-white text-[10px] px-2 py-0.5 h-fit shadow-sm shrink-0 gap-1">
+                              <Pencil className="h-2.5 w-2.5" />
+                              Modification
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-medium ml-auto shrink-0">{ts}</span>
+                          </div>
+                          <div className="flex items-center gap-2 w-full min-w-0">
+                            {userChip}
+                            <span className="text-xs font-medium truncate min-w-0 flex-1" title={h.label || h.field}>
+                              {h.label || h.field}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const c = statusColorMap[h.new_status] || defaultColors;
                 const newLabel = statusLabels[h.new_status] || h.new_status;
                 const newTransitionLabel = transitionLabels[h.new_status] || newLabel;
                 const oldTransitionLabel = h.old_status ? (transitionLabels[h.old_status] || statusLabels[h.old_status] || h.old_status) : null;
                 const text = oldTransitionLabel ? `${oldTransitionLabel} → ${newTransitionLabel}` : `Statut: ${newTransitionLabel}`;
-                const isLast = idx === (processedHistory?.length || 0) - 1;
-                const date = new Date(h.created_at);
-                const ts = `${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 
                 return (
-                  <div key={idx} className={`relative flex gap-3 ${isLast ? 'pb-1' : 'pb-3'}`}>
+                  <div key={`s-${idx}`} className={`relative flex gap-3 ${isLast ? 'pb-1' : 'pb-3'}`}>
                     <div className="flex flex-col items-center">
                       <div className={`h-3 w-3 rounded-full bg-gradient-to-b ${c.dot} shadow-sm ring-2 ring-white dark:ring-gray-900 shrink-0 mt-1`} />
                       {!isLast && <div className="w-0.5 flex-1 bg-border/60 mt-1" />}
@@ -221,15 +329,7 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
                           <span className="text-[10px] text-muted-foreground font-medium ml-auto shrink-0">{ts}</span>
                         </div>
                         <div className="flex items-center gap-2 w-full min-w-0">
-                          {h.user_name && (
-                            <span className="text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shrink-0 whitespace-nowrap">
-                              {h.user_role === 'ai' ? <Bot className="h-2.5 w-2.5 shrink-0" /> 
-                                : h.user_role === 'delivery' ? <Truck className="h-2.5 w-2.5 shrink-0" />
-                                : h.user_role === 'admin' ? <Shield className="h-2.5 w-2.5 shrink-0" />
-                                : <User className="h-2.5 w-2.5 shrink-0" />}
-                              {h.user_role === 'ai' ? 'IA' : h.user_role === 'delivery' && h.changed_by?.startsWith('Livreur:') ? `Livreur : ${h.user_name}` : h.user_name}
-                            </span>
-                          )}
+                          {userChip}
                           <span className="text-xs font-medium truncate min-w-0 flex-1 text-center">{text}</span>
                         </div>
                       </div>
