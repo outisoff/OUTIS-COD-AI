@@ -1006,3 +1006,102 @@ export function useAgentPerformance(storeId?: string | null) {
     refetchOnWindowFocus: false,
   });
 }
+
+/**
+ * Per-product confirmation/delivery rates for a fixed list of product names,
+ * scoped to the last 90 days. Replaces heavy full-orders fetch previously
+ * done inside TopProductsTable via useOrders().
+ */
+export function useTopProductRates(productNames: string[]) {
+  const key = [...productNames].sort();
+  return useQuery({
+    queryKey: ['orders', 'top-product-rates-90d', key],
+    queryFn: async () => {
+      if (productNames.length === 0) return {} as Record<string, { total: number; confirmed: number; delivered: number; shipped: number }>;
+
+      const since = new Date();
+      since.setDate(since.getDate() - 90);
+      const sinceIso = since.toISOString();
+
+      // 1) items matching the top product names, only within last 90d orders
+      const pageSize = 1000;
+      let items: { product_name: string; quantity: number; order_id: string }[] = [];
+      let p = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('order_items')
+          .select('product_name, quantity, order_id, orders!inner(status, created_at)')
+          .in('product_name', productNames)
+          .gte('orders.created_at', sinceIso)
+          .range(p * pageSize, (p + 1) * pageSize - 1);
+        if (error) throw error;
+        const batch = (data || []) as unknown as { product_name: string; quantity: number; order_id: string; orders: { status: string; created_at: string } }[];
+        // Flatten status onto items
+        batch.forEach(b => items.push({ product_name: b.product_name, quantity: b.quantity, order_id: b.order_id }));
+        // Stash statuses via closure
+        (items as any).__statuses = ((items as any).__statuses || new Map<string, string>());
+        batch.forEach(b => (items as any).__statuses.set(b.order_id, b.orders?.status));
+        if (batch.length < pageSize) break;
+        p++;
+      }
+
+      const statusByOrder: Map<string, string> = (items as any).__statuses || new Map();
+
+      const deliveredStatuses = new Set(['delivered', 'delivered_paid']);
+      const confirmedStatuses = new Set(['confirmed', 'ready', 'preparing', 'shipped', 'to_station', 'at_station', 'au_bureau', 'en_livraison', 'delivered', 'delivered_paid', 'Échec_de_livraison', 'returned', 'erreur']);
+      const shippedStatuses = new Set(['shipped', 'to_station', 'at_station', 'au_bureau', 'en_livraison', 'Échec_de_livraison', 'delivered', 'delivered_paid', 'returned']);
+
+      const map: Record<string, { total: number; confirmed: number; delivered: number; shipped: number }> = {};
+      items.forEach(it => {
+        const name = it.product_name.trim();
+        const status = statusByOrder.get(it.order_id) || '';
+        if (!map[name]) map[name] = { total: 0, confirmed: 0, delivered: 0, shipped: 0 };
+        map[name].total += it.quantity;
+        if (confirmedStatuses.has(status)) map[name].confirmed += it.quantity;
+        if (deliveredStatuses.has(status)) map[name].delivered += it.quantity;
+        if (shippedStatuses.has(status)) map[name].shipped += it.quantity;
+      });
+      return map;
+    },
+    enabled: productNames.length > 0,
+    staleTime: 5 * 60_000,
+    gcTime: 15 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Delivery-company aggregates. Fetches only the two columns needed, scoped to
+ * shipped/delivered/returned statuses. Replaces the previous full-orders scan
+ * inside DeliveryPerformanceTable via useOrders().
+ */
+export function useDeliveryCompanyStats(storeId?: string | null) {
+  return useQuery({
+    queryKey: ['orders', 'delivery-company-stats', storeId],
+    queryFn: async () => {
+      const shipped = ['shipped', 'delivered', 'delivered_paid', 'returned', 'Échec_de_livraison', 'en_livraison', 'at_station', 'to_station', 'au_bureau'] as Database['public']['Enums']['order_status'][];
+      const pageSize = 1000;
+      let rows: { delivery_company: string | null; status: string }[] = [];
+      let p = 0;
+      while (true) {
+        let q = supabase
+          .from('orders')
+          .select('delivery_company, status')
+          .not('delivery_company', 'is', null)
+          .in('status', shipped)
+          .range(p * pageSize, (p + 1) * pageSize - 1);
+        if (storeId) q = q.eq('store_id', storeId);
+        const { data, error } = await q;
+        if (error) throw error;
+        if (data) rows = rows.concat(data as { delivery_company: string | null; status: string }[]);
+        if (!data || data.length < pageSize) break;
+        p++;
+      }
+      return rows;
+    },
+    staleTime: 2 * 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
