@@ -7,7 +7,7 @@ type Product = Database['public']['Tables']['products']['Row'];
 type ProductInsert = Database['public']['Tables']['products']['Insert'];
 type ProductUpdate = Database['public']['Tables']['products']['Update'];
 
-export function useProducts() {
+export function useProducts(enabled: boolean = true) {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
@@ -19,11 +19,13 @@ export function useProducts() {
       if (error) throw error;
       return data as Product[];
     },
+    enabled,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });
 }
+
 
 export function useProduct(id: string) {
   return useQuery({
