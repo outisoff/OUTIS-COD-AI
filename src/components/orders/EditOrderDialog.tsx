@@ -175,6 +175,7 @@ export function EditOrderDialog({ order, confirmationOnly = false, expeditionOnl
   const addItemButtonRef = useRef<HTMLButtonElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: products } = useProducts();
   const { data: stores } = useActiveStores();
   const { data: deliveryFees } = useDeliveryFees();
