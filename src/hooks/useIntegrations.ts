@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type IntegrationUpdate = Database['public']['Tables']['integrations']['Update'];
 
 export interface Integration {
   id: string;
@@ -72,14 +75,14 @@ export function useUpsertIntegration() {
         .maybeSingle();
 
       if (existing) {
-        const updateData: Record<string, unknown> = {};
+        const updateData: IntegrationUpdate = {};
         if (integration.api_key !== undefined) updateData.api_key = integration.api_key;
         if (integration.api_secret !== undefined) updateData.api_secret = integration.api_secret;
         if (integration.webhook_url !== undefined) updateData.webhook_url = integration.webhook_url;
         if (integration.spreadsheet_id !== undefined) updateData.spreadsheet_id = integration.spreadsheet_id;
         if (integration.store_url !== undefined) updateData.store_url = integration.store_url;
         if (integration.is_enabled !== undefined) updateData.is_enabled = integration.is_enabled;
-        if (integration.settings !== undefined) updateData.settings = integration.settings;
+        if (integration.settings !== undefined) updateData.settings = integration.settings as IntegrationUpdate['settings'];
 
         const { error } = await supabase
           .from('integrations')

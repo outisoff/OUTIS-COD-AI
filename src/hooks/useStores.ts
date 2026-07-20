@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
 export interface Store {
   id: string;
@@ -16,7 +19,7 @@ export function useStores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stores')
-        .select('*')
+        .select('id, name, is_active, created_at, updated_at')
         .order('name');
       if (error) throw error;
       return data as Store[];
@@ -30,7 +33,7 @@ export function useActiveStores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stores')
-        .select('*')
+        .select('id, name, is_active, created_at, updated_at')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
@@ -69,7 +72,7 @@ export function useUpdateStore() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name, is_active }: { id: string; name?: string; is_active?: boolean }) => {
-      const updates: Record<string, unknown> = {};
+      const updates: StoreUpdate = {};
       if (name !== undefined) updates.name = name;
       if (is_active !== undefined) updates.is_active = is_active;
       const { error } = await supabase

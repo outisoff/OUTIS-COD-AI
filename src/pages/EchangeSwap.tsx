@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getWilayaLabel } from '@/data/algeriaLocations';
@@ -343,7 +344,7 @@ const EchangeSwap = () => {
       if (tErr) throw tErr;
 
       // Clear source tracking + cancel
-      const srcUpdate: Record<string, unknown> = { tracking_number: null, updated_at: nowIso };
+      const srcUpdate: Database['public']['Tables']['orders']['Update'] = { tracking_number: null, updated_at: nowIso };
       if (swapOrder.status !== 'cancelled') srcUpdate.status = 'cancelled';
       const { error: sErr } = await supabase.from('orders').update(srcUpdate).eq('id', swapOrder.id);
       if (sErr) throw sErr;
@@ -865,4 +866,3 @@ const EchangeSwap = () => {
 };
 
 export default EchangeSwap;
-

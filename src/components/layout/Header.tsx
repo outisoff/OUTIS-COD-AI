@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { useOrders } from '@/hooks/useOrders';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useProducts } from '@/hooks/useProducts';
 import { useSmartAlerts, SmartAlert } from '@/hooks/useSmartAlerts';
+import { useDashboardOrdersSource } from '@/hooks/useDashboardData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
@@ -67,8 +67,8 @@ export const Header = memo(function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const shouldLoadSearchOrders = searchOpen || searchQuery.trim().length > 0;
   
-  const { data: orders } = useOrders(shouldLoadSearchOrders);
-  const { data: customers } = useCustomers();
+  const { data: orders } = useDashboardOrdersSource();
+  const { data: customers } = useCustomers(shouldLoadSearchOrders);
   const { data: products } = useProducts();
   const { alerts: smartAlerts, criticalCount, totalCount } = useSmartAlerts();
 

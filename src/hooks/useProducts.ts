@@ -13,7 +13,13 @@ export function useProducts(enabled: boolean = true) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          ai_confirmation, average_purchase_price, barcode, category, created_at,
+          current_stock, custom_home_delivery_fee, custom_stop_desk_fee,
+          delivery_pricing_tier, description, free_delivery, id, name,
+          purchase_price, reorder_level, reserved_stock, selling_price, sku,
+          store_id, updated_at
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -54,7 +60,7 @@ export function useCreateProduct() {
       
       const { data, error } = await supabase
         .from('products')
-        .insert(validated as any)
+        .insert(validated as ProductInsert)
         .select()
         .single();
       
@@ -78,7 +84,7 @@ export function useUpdateProduct() {
       
       const { data, error } = await supabase
         .from('products')
-        .update(updateData as any)
+        .update(updateData as ProductUpdate)
         .eq('id', validatedId)
         .select()
         .single();
@@ -111,23 +117,11 @@ export function useDeleteProduct() {
 }
 
 export function useLowStockProducts() {
-  return useQuery({
-    queryKey: ['products', 'low-stock'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('current_stock', { ascending: true });
-      
-      if (error) throw error;
-      
-      // Filter products where available stock is at or below reorder level
-      return (data || []).filter(
-        (p: any) => (p.current_stock - p.reserved_stock) <= p.reorder_level
-      );
-    },
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    refetchOnWindowFocus: false,
-  });
+  const query = useProducts();
+  return {
+    ...query,
+    data: query.data
+      ?.filter(product => (product.current_stock - product.reserved_stock) <= product.reorder_level)
+      .sort((a, b) => a.current_stock - b.current_stock),
+  };
 }

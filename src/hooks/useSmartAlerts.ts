@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useDashboardOrdersSource } from '@/hooks/useDashboardData';
+import { useProducts } from '@/hooks/useProducts';
 
 export interface SmartAlert {
   id: string;
@@ -14,38 +16,13 @@ export interface SmartAlert {
 
 // Reuse the main orders cache instead of a separate fetch
 function useCustomerRiskAlerts(): SmartAlert[] {
-  const { data: allOrders } = useQuery({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      // This matches the useOrders queryKey so React Query deduplicates
-      let all: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data, error } = await supabase
-          .from('orders')
-          .select(`*, order_items (*, products:product_id (sku))`)
-          .order('created_at', { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-        if (error) throw error;
-        if (data) all = all.concat(data);
-        if (!data || data.length < pageSize) break;
-        page++;
-      }
-      return all;
-    },
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    refetchOnWindowFocus: false,
-  });
-
-  const orders = allOrders;
+  const { data: orders } = useDashboardOrdersSource();
 
   return useMemo(() => {
     if (!orders?.length) return [];
 
     // Group orders by customer phone
-    const customerOrders: Record<string, typeof orders> = {};
+    const customerOrders: Record<string, NonNullable<typeof orders>> = {};
     for (const order of orders) {
       const key = order.customer_phone;
       if (!customerOrders[key]) customerOrders[key] = [];
@@ -95,17 +72,7 @@ function useCustomerRiskAlerts(): SmartAlert[] {
 
 // Fetch products approaching stock depletion
 function useStockAlerts(): SmartAlert[] {
-  const { data: products } = useQuery({
-    queryKey: ['products-for-alerts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, sku, current_stock, reserved_stock, reorder_level');
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: products } = useProducts();
 
   return useMemo(() => {
     if (!products?.length) return [];
@@ -149,7 +116,7 @@ function useSystemAlerts(): SmartAlert[] {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('alerts')
-        .select('*')
+        .select('id, type, message, is_read, created_at')
         .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(20);

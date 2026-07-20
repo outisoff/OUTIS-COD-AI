@@ -8,8 +8,7 @@ import { useStoreFilter } from '@/contexts/StoreFilterContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLowStockProducts } from '@/hooks/useProducts';
 import { useCurrentUserRole } from '@/hooks/useUserRoles';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfileName } from '@/hooks/useProfilesAndRoles';
 import { prefetchRoute } from '@/lib/prefetchRoutes';
 import {
   LayoutDashboard,
@@ -114,20 +113,7 @@ export const Sidebar = memo(function Sidebar() {
 
   const lowStockCount = lowStockProducts?.length || 0;
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile-name', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: profile } = useProfileName(user?.id);
 
   const userName = profile?.full_name
     || user?.user_metadata?.full_name

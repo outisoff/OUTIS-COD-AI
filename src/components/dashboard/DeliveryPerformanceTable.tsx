@@ -1,19 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useDeliveryCompanyStats } from '@/hooks/useOrders';
-import { useStoreFilter } from '@/contexts/StoreFilterContext';
 import { useMemo } from 'react';
+import type { OrderWithItems } from '@/hooks/useOrders';
 
-export function DeliveryPerformanceTable() {
-  const { selectedStoreId } = useStoreFilter();
-  const { data: rows } = useDeliveryCompanyStats(selectedStoreId);
+interface DeliveryPerformanceTableProps {
+  orders?: OrderWithItems[];
+}
+
+export function DeliveryPerformanceTable({ orders }: DeliveryPerformanceTableProps) {
 
   const deliveryStats = useMemo(() => {
-    if (!rows) return [];
+    if (!orders) return [];
 
     const companyMap: Record<string, { delivered: number; returned: number; inTransit: number; total: number }> = {};
 
-    for (const order of rows) {
+    for (const order of orders) {
       const company = order.delivery_company;
       if (!company) continue;
 
@@ -21,7 +22,9 @@ export function DeliveryPerformanceTable() {
         companyMap[company] = { delivered: 0, returned: 0, inTransit: 0, total: 0 };
       }
 
-      // rows are already scoped to shipped/delivered/returned statuses server-side
+      const shippedStatuses = ['shipped', 'delivered', 'delivered_paid', 'returned', 'Échec_de_livraison', 'en_livraison', 'at_station', 'to_station', 'au_bureau'];
+      if (!shippedStatuses.includes(order.status)) continue;
+
       companyMap[company].total++;
 
       if (order.status === 'delivered' || order.status === 'delivered_paid') {
@@ -43,8 +46,7 @@ export function DeliveryPerformanceTable() {
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
-  }, [rows]);
-
+  }, [orders]);
 
   return (
     <Card>

@@ -6,7 +6,7 @@ import { customerInsertSchema, customerUpdateSchema } from '@/lib/validation';
 type Customer = Database['public']['Tables']['customers']['Row'];
 type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
 
-export function useCustomers() {
+export function useCustomers(enabled: boolean = true) {
   return useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
@@ -33,6 +33,7 @@ export function useCustomers() {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+    enabled,
   });
 }
 

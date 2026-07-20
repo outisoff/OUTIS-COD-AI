@@ -14,13 +14,9 @@ import { ConfirmationRateChart } from '@/components/dashboard/ConfirmationRateCh
 import { DeliveryRateChart } from '@/components/dashboard/DeliveryRateChart';
 import { DashboardFilters, type DashboardFiltersState } from '@/components/dashboard/DashboardFilters';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfilesAndRoles } from '@/hooks/useProfilesAndRoles';
-import { useOrders, useOrderStats, useDailyOrders, useTopProducts, useAgentPerformance } from '@/hooks/useOrders';
-import { useOrdersByWilaya, type MapFilterStatus } from '@/hooks/useOrdersByWilaya';
-import { useProducts } from '@/hooks/useProducts';
-
-
-import { useFilteredOrderIds } from '@/hooks/useFilteredOrderIds';
+import { useProfileName } from '@/hooks/useProfilesAndRoles';
+import type { MapFilterStatus } from '@/hooks/useOrdersByWilaya';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -45,21 +41,16 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [dateField, setDateField] = useState<'created_at' | 'updated_at'>('created_at');
   
-  // Products list is only needed by the filters panel; load lazily.
-  const { data: allProducts } = useProducts(showFilters);
-  // Lazy-load full orders list — only when filter panel is opened.
-  // Dashboard stats use lighter aggregated queries that don't depend on this.
-  const { data: allOrders } = useOrders(showFilters);
-  const { data: filteredOrderIds } = useFilteredOrderIds(filters);
-  
-  const hasAnyFilter = Object.values(filters).some(arr => arr.length > 0);
-  const productFilter = !hasAnyFilter ? undefined : (filteredOrderIds ?? []);
-  
-  const { data: orderStats, isLoading: statsLoading } = useOrderStats(dateRange.from, dateRange.to, productFilter, selectedStoreId, dateField);
-  const { data: dailyOrders, isLoading: ordersChartLoading } = useDailyOrders(dateRange.from, dateRange.to, productFilter, selectedStoreId, dateField);
-  const { data: topProducts, isLoading: productsLoading } = useTopProducts();
-  const { data: agentPerformance, isLoading: agentsLoading } = useAgentPerformance(selectedStoreId);
-  const { data: wilayaCounts } = useOrdersByWilaya(dateRange.from, dateRange.to, mapFilter, productFilter, selectedStoreId, dateField);
+  const {
+    allOrders,
+    products: allProducts,
+    orderStats,
+    dailyOrders,
+    topProducts,
+    agentPerformance,
+    wilayaCounts,
+    isLoading: dashboardLoading,
+  } = useDashboardData(dateRange.from, dateRange.to, filters, selectedStoreId, dateField, mapFilter);
 
 
   const activeFilterCount = Object.values(filters).filter(arr => arr.length > 0).length;
@@ -80,10 +71,25 @@ export default function Dashboard() {
     return new Intl.NumberFormat('fr-DZ').format(value) + ' DA';
   };
 
+  // Calculate low stock products from real data
+  const lowStockProducts = allProducts?.filter(p =>
+    (p.current_stock - p.reserved_stock) <= p.reorder_level
+  ).map(p => ({
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    category: p.category,
+    purchasePrice: Number(p.purchase_price),
+    sellingPrice: Number(p.selling_price),
+    currentStock: p.current_stock,
+    reservedStock: p.reserved_stock,
+    reorderLevel: p.reorder_level,
+    createdAt: new Date(p.created_at),
+    updatedAt: new Date(p.updated_at),
+  })) || [];
 
-
-  const { profileMap } = useProfilesAndRoles();
-  const userName = (user?.id && profileMap[user.id])
+  const { data: profile } = useProfileName(user?.id);
+  const userName = profile?.full_name
     || user?.user_metadata?.full_name
     || user?.email?.split('@')[0]
     || 'Utilisateur';
@@ -210,7 +216,7 @@ export default function Dashboard() {
 
       {/* Main dashboard content - unaffected by filters */}
       <div className="space-y-6">
-        {statsLoading ? (
+        {dashboardLoading ? (
           <Skeleton className="h-[200px] rounded-xl" />
         ) : (
           <DashboardStatsCards orderStats={orderStats} orders={allOrders} dateRange={dateRange} />
@@ -220,7 +226,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <AlgeriaOrdersMap wilayaCounts={wilayaCounts || {}} filterStatus={mapFilter} onFilterChange={setMapFilter} />
           <div>
-            {ordersChartLoading ? (
+            {dashboardLoading ? (
               <Skeleton className="h-[400px] rounded-xl" />
             ) : (
               <OrdersChart data={dailyOrders || []} title="Commandes :" />
@@ -240,17 +246,17 @@ export default function Dashboard() {
 
         {/* Tables Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {productsLoading ? (
+          {dashboardLoading ? (
             <Skeleton className="h-[300px] rounded-xl" />
           ) : (
-            <TopProductsTable data={topProducts || []} />
+            <TopProductsTable data={topProducts || []} orders={allOrders} />
           )}
-          {agentsLoading ? (
+          {dashboardLoading ? (
             <Skeleton className="h-[300px] rounded-xl" />
           ) : (
             <AgentPerformanceTable data={agentPerformance || []} />
           )}
-          <DeliveryPerformanceTable />
+          <DeliveryPerformanceTable orders={allOrders} />
         </div>
       </div>
     </div>

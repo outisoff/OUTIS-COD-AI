@@ -12,6 +12,26 @@ interface RoleData {
   role: string;
 }
 
+export function useProfileName(userId?: string) {
+  return useQuery({
+    queryKey: ['profile-name', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
 /**
  * Shared hook that fetches all profiles and user_roles once,
  * cached globally to avoid redundant API calls across components.
