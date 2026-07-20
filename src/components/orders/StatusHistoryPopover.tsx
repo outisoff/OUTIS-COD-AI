@@ -136,6 +136,11 @@ export function StatusHistoryPopover({ order }: StatusHistoryPopoverProps) {
         queryFn: historyQueryFn,
         staleTime: 5 * 60 * 1000,
       });
+      queryClient.prefetchQuery({
+        queryKey: editHistoryQueryKey,
+        queryFn: editHistoryQueryFn,
+        staleTime: 5 * 60 * 1000,
+      });
       prefetchTimer.current = null;
     }, 150);
   };
