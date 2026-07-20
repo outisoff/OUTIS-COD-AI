@@ -549,7 +549,7 @@ export function EditOrderDialog({ order, confirmationOnly = false, expeditionOnl
           notes: data.notes || null,
           total_price: total,
         },
-        data.items,
+        data.items as any,
         user?.id ?? null,
         user?.email ?? null,
       );
