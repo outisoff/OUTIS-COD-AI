@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfilesAndRoles } from '@/hooks/useProfilesAndRoles';
 import { useOrders, useOrderStats, useDailyOrders, useTopProducts, useAgentPerformance } from '@/hooks/useOrders';
 import { useOrdersByWilaya, type MapFilterStatus } from '@/hooks/useOrdersByWilaya';
-import { useProducts } from '@/hooks/useProducts';
+
 import { useFilteredOrderIds } from '@/hooks/useFilteredOrderIds';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
