@@ -1,58 +1,51 @@
 ## Goal
 
-Make the **Swap** flow on `/echange-remboursement` work **purely locally** — no calls to ZR Express. The Échange flow already works locally and stays as-is.
+Every time someone edits an order (wilaya, commune, address, phone, price, delivery fee, discount, delivery company, delivery type, status, notes, products added/removed/modified…), record **who did it, what changed, and when**, and show these entries inside the existing **Historique Statut** popover on every commandes page (Orders, Confirmation, Tracking, Expedition, Paye/Retour, Echange).
 
-## Changes
+## 1. Database (you run this SQL on Supabase)
 
-### 1. `src/pages/EchangeRemboursement.tsx` — local swap handler
+New table `public.order_edit_history`:
 
-Replace `handleSwap` so it:
-- Updates the order directly in the `orders` table with the new values from the form (`customer_name`, `customer_phone`, `total_price`, `delivery_type`, `wilaya`, `commune`, `customer_address`).
-- Inserts a row in `order_history` with `changed_by: 'ZR Express Swap'` (kept as-is so `useSwappedOrders` continues to detect it) and a note like `Swap local — ancien client: X → nouveau: Y`.
-- No call to `supabase.functions.invoke('zr-express-swap', …)`.
-- On success: invalidate `['orders']`, `['orders-echange']`, `['orders-swapped']`, close dialog.
-
-### 2. `src/pages/EchangeRemboursement.tsx` — relax swap button visibility
-
-In the actions cell (currently line 422), drop the `delivery_company === 'ZR Express' && tracking_number && SWAP_ELIGIBLE_STATUSES.includes(...)` gate. Show the swap button on every row (still excluding already-exchanged/returned rows is implicit via the tab filter).
-
-Also update the tooltip text from "Swap ZR Express (…)" → "Swap commande".
-
-### 3. `src/pages/EchangeRemboursement.tsx` — dialog copy
-
-- Chooser button: "Swap ZR Express d'une commande" → "Swap d'une commande".
-- Swap dialog title: keep "Swap" (drop "ZR Express").
-- Drop the description line mentioning "directement sur ZR Express" and the "Ne répond pas 3 / Annulée" requirement.
-- Drop the ZR-specific warning paragraph (limite 2x, wilayas restreintes).
-- Hide the "Tracking ZR" line in the summary when there is no `tracking_number`.
-
-### 4. `src/hooks/useEchangeOrders.ts` — eligible list for new swap
-
-In `useEligibleOrderSearch`, replace the `mode === 'swap'` branch:
-
-```ts
-if (mode === 'swap') {
-  const excludeStatuses: OrderStatus[] = ['exchange', 'returned', 'new'];
-  query = query.not('status', 'in', `(${excludeStatuses.join(',')})`);
-} else { /* unchanged */ }
+```text
+id            uuid pk
+order_id      uuid  -> orders.id (on delete cascade)
+changed_by_user_id uuid nullable
+changed_by    text  nullable   -- fallback label (e.g. "IA", "Livreur: X")
+field         text            -- 'wilaya', 'total_price', 'items.add', 'items.remove', 'items.update', 'delivery_company', ...
+old_value     text nullable
+new_value     text nullable
+label         text nullable   -- pretty human summary shown in the UI
+created_at    timestamptz default now()
 ```
 
-This lets any non-terminal order be picked for a local swap, regardless of carrier/tracking.
++ GRANTs to `authenticated` / `service_role` + RLS: `authenticated` may `select` for orders they can already see; `insert` allowed when `auth.uid()` is the acting user (or via service_role from Edge Functions later).
 
-### 5. `src/pages/EchangeRemboursement.tsx` — eligible-orders filter
+I'll generate the SQL migration file `public/order-edit-history-migration.sql` for you to paste into the Supabase SQL editor.
 
-Remove the client-side filter block at lines 158–166 that restricts to `ZR Express + tracking_number + SWAP_ELIGIBLE_STATUSES`. Use `eligibleOrdersAll` directly. The constant `SWAP_ELIGIBLE_STATUSES` can be deleted.
+## 2. Frontend helper
 
-## Out of scope / left untouched
+New `src/lib/orderEditHistory.ts` exporting `logOrderEdits(orderId, before, after, currentUserId)`:
+- Diffs a whitelist of fields on the `orders` row.
+- Diffs `order_items` arrays (added / removed / quantity or price changed / product renamed).
+- Batches all diffs into a single `insert` into `order_edit_history` with a friendly `label` per row (e.g. `Wilaya: Alger → Oran`, `Prix total: 3200 → 3500 DA`, `+ Produit "T-Shirt XL" (x2 · 1500 DA)`).
 
-- `supabase/functions/zr-express-swap/index.ts` stays on disk but is no longer called from the UI.
-- "Échange" tab logic, "Retirer de l'échange", chat panel, WhatsApp indicator — unchanged.
-- DB schema — no migration needed; we reuse `orders` + `order_history`.
+## 3. EditOrderDialog
 
-## Verification
+Before running the `update`, snapshot the incoming `order` (fields + items). After all updates succeed, call `logOrderEdits(...)`. Non-blocking: if logging fails, we `console.warn` and still show success toast. No behaviour change to the save flow itself.
 
-After build:
-1. Open `/echange-remboursement` → tab **Swaps** loads existing swapped orders.
-2. Click "Nouvelle commande" → "Swap" → any non-terminal order is selectable.
-3. Submit swap form with new phone/amount → toast success, order updated in DB, new row appears in Swaps tab on refetch.
-4. No network call to `zr-express-swap` edge function (check Network panel).
+## 4. StatusHistoryPopover
+
+- Rename header to keep "Historique Statut" but the popover already merges data; add a second query for `order_edit_history` (enabled when open, same prefetch pattern).
+- Merge both arrays into one timeline sorted by `created_at desc`. Status entries keep current bubble style; edit entries get a neutral slate style with a `Pencil` icon and show `label` as the text and the user chip already computed the same way (`changed_by_user_id` → `profileMap` / `roleMap`).
+- Counter badge shows the combined count.
+
+## 5. Coverage
+
+Only `EditOrderDialog.onSubmit` writes multi-field edits from the UI. Quick inline status changes already flow through `order_history` (unchanged). Deletion of items via other flows (bulk ship, ecotrack sync) are intentionally out of scope — this feature covers manual edits from the commandes pages, which is what you asked for.
+
+## Technical notes
+
+- No changes to backend edge functions.
+- No new dependencies.
+- The popover is used by every commandes list, so a single edit here covers Orders, Confirmation, Tracking, Expedition, Paye/Retour, and Echange automatically.
+- After running the SQL, regenerate `src/integrations/supabase/types.ts` (or I'll add a minimal manual type augmentation so TypeScript compiles until you regenerate).
