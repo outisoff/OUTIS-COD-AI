@@ -162,18 +162,22 @@ Deno.serve(async (req) => {
 
     const storedApiKey = integration?.api_key;
 
-    // Validate API key ONLY if configured. If missing, accept all requests (temporary — security todo).
-    if (storedApiKey) {
-      const url = new URL(req.url);
-      const incomingKey = url.searchParams.get("api_key") || req.headers.get("x-api-key");
+    if (!storedApiKey) {
+      console.error("LightFunnel API key is not configured; refusing webhook traffic");
+      return new Response(JSON.stringify({ error: "Webhook not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-      if (incomingKey !== storedApiKey) {
-        console.error("Invalid or missing API key");
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const url = new URL(req.url);
+    const incomingKey = url.searchParams.get("api_key") || req.headers.get("x-api-key");
+    if (incomingKey !== storedApiKey) {
+      console.error("Invalid or missing API key");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const payload = await req.json();

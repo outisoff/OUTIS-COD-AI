@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifySignedOAuthState } from '../_shared/oauthState.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID');
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const OAUTH_STATE_SECRET = Deno.env.get('OAUTH_STATE_SECRET');
 // Use APP_URL environment variable for flexibility across environments
 const APP_URL = Deno.env.get('APP_URL') || 'https://id-preview--ceb2e801-a26d-48a3-ab05-c8be00695eb7.lovable.app';
 
@@ -26,12 +28,17 @@ serve(async (req) => {
       return new Response('No authorization code received', { status: 400 });
     }
 
-    // Parse state to get redirect URL and user ID
+    // Verify the signed, short-lived state before trusting the user binding.
     let redirectUrl = '/settings?tab=integrations';
     let userId: string | null = null;
-    try {
-      if (state) {
-        const stateData = JSON.parse(atob(state));
+    if (!state || !OAUTH_STATE_SECRET) {
+      return new Response('Invalid OAuth state', { status: 400 });
+    }
+    const stateData = await verifySignedOAuthState(state, OAUTH_STATE_SECRET);
+    if (!stateData) {
+      return new Response('Invalid or expired OAuth state', { status: 400 });
+    }
+    {
         const candidate = stateData.redirectUrl || '/settings?tab=integrations';
         // Allowlist: only allow relative paths or URLs that resolve to APP_URL's origin.
         // This prevents an open-redirect that would leak the user's email to an attacker domain.
@@ -43,9 +50,6 @@ serve(async (req) => {
           redirectUrl = '/settings?tab=integrations';
         }
         userId = stateData.userId || null;
-      }
-    } catch (e) {
-      console.error('Error parsing state:', e);
     }
 
     if (!userId) {
@@ -124,7 +128,6 @@ serve(async (req) => {
     // Uses APP_URL environment variable for production flexibility
     const appRedirectUrl = new URL(redirectUrl, APP_URL);
     appRedirectUrl.searchParams.set('google_auth_success', 'true');
-    appRedirectUrl.searchParams.set('google_email', userInfo.email || '');
 
     console.log('Redirecting to:', appRedirectUrl.toString());
 

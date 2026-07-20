@@ -1,6 +1,15 @@
 import { format } from 'date-fns';
 import type { OrderWithItems } from '@/hooks/useOrders';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function generateBordereauHtml(order: OrderWithItems): string {
   const wilayaCode = order.wilaya?.match(/^(\d+)/)?.[1] || '';
   const wilayaName = order.wilaya?.replace(/^\d+\s*-\s*/, '') || '';
@@ -17,6 +26,22 @@ export function generateBordereauHtml(order: OrderWithItems): string {
   const companyName = order.delivery_company || 'Local';
   const departureBureau = 'Hub Ouled Fayet 16';
   const totalAmount = Number(order.total_price).toLocaleString('fr-DZ');
+  const safeCustomerName = escapeHtml(order.customer_name);
+  const safeCustomerPhone = escapeHtml(order.customer_phone);
+  const safeAddress = escapeHtml(cleanAddress);
+  const safeCompanyName = escapeHtml(companyName);
+  const safeStopDeskName = escapeHtml(stopDeskName);
+  const safeWilayaName = escapeHtml(wilayaName);
+  const safeWilayaCode = escapeHtml(wilayaCode);
+  const safeTrackingDisplay = escapeHtml(trackingDisplay);
+  const safeOrderId = escapeHtml(order.id);
+  const safeRemarks = escapeHtml(
+    (order.remarks || '')
+      .replace(/\[\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\]/g, '')
+      .replace(/\[[^\]]*\]/g, '')
+      .replace(/LF:\S+/g, '')
+      .trim(),
+  );
 
   const statusLabels = ['Livré', 'Erreur', 'Vers station', 'En station', 'Au bureau', 'En livraison', 'Échec de livr', 'Alerte', 'Retour'];
   const statusBoxesHtml = statusLabels.map(s =>
@@ -30,20 +55,20 @@ export function generateBordereauHtml(order: OrderWithItems): string {
       <img src="${qrUrl}" style="width:26mm;height:26mm"/>
     </div>
     <div class="cell border-r" style="flex:1;font-size:9px;line-height:1.6">
-      <div>Client: <span class="bold">${order.customer_name}</span></div>
-      <div>N° Tél: <span class="bold">${order.customer_phone}</span></div>
-      <div>Addresse du Client: <span class="bold">${cleanAddress}</span></div>
+      <div>Client: <span class="bold">${safeCustomerName}</span></div>
+      <div>N° Tél: <span class="bold">${safeCustomerPhone}</span></div>
+      <div>Addresse du Client: <span class="bold">${safeAddress}</span></div>
     </div>
     <div style="width:38mm;flex-shrink:0;display:flex;flex-direction:column">
       <div style="background:#d4a017;padding:2.5mm;text-align:center;border-bottom:1px solid #000">
         <div style="font-size:14px;font-weight:900;color:#000;font-family:Impact,Arial;letter-spacing:1px;line-height:1">
-          ${companyName}
+          ${safeCompanyName}
         </div>
       </div>
       <div class="cell" style="font-size:8px;line-height:1.6;flex:1">
         <div>Bureau de départ: <span class="bold">${departureBureau}</span></div>
         ${isStopDesk && stopDeskName
-          ? `<div>Bureau de livraison: <span class="bold">${stopDeskName}</span></div>`
+          ? `<div>Bureau de livraison: <span class="bold">${safeStopDeskName}</span></div>`
           : `<div>Livraison: <span class="bold">À domicile</span></div>`}
         <div>Type de livraison: <span class="bold">${deliveryTypeLabel}</span></div>
       </div>
@@ -54,18 +79,18 @@ export function generateBordereauHtml(order: OrderWithItems): string {
     <div class="border-r" style="width:10mm;background:#e8e8e8;flex-shrink:0;position:relative">
       <div style="writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-weight:bold;font-size:9px;text-align:center;letter-spacing:0.5px;height:100%;display:flex;align-items:center;justify-content:center;padding:3mm 1mm">
         ${isStopDesk
-          ? `SD / HUB ${(stopDeskName || wilayaName).toUpperCase()} ${wilayaCode} / STD`
-          : `DOM / ${wilayaName.toUpperCase()} ${wilayaCode}`}
+          ? `SD / HUB ${escapeHtml((stopDeskName || wilayaName).toUpperCase())} ${safeWilayaCode} / STD`
+          : `DOM / ${escapeHtml(wilayaName.toUpperCase())} ${safeWilayaCode}`}
       </div>
     </div>
     <div class="cell border-r" style="flex:1;font-size:9px;line-height:1.7">
       <div class="bold" style="font-size:10px;margin-bottom:2mm;border-bottom:1px solid #ccc;padding-bottom:1mm">Détails de la commande</div>
-      <div>Numéro de suivi:<br/><span class="bold" style="font-size:10px">${trackingDisplay}</span></div>
-      <div style="margin-top:2mm">Suivi personnalisé:<br/><span class="bold" style="font-size:7px;word-break:break-all">${order.id}</span></div>
-      <div style="margin-top:2mm">E-commerçant:<br/><span class="bold">${companyName}</span></div>
-      <div style="margin-top:2mm">N° Tél. après-vente:<br/><span class="bold">${order.customer_phone}</span></div>
+      <div>Numéro de suivi:<br/><span class="bold" style="font-size:10px">${safeTrackingDisplay}</span></div>
+      <div style="margin-top:2mm">Suivi personnalisé:<br/><span class="bold" style="font-size:7px;word-break:break-all">${safeOrderId}</span></div>
+      <div style="margin-top:2mm">E-commerçant:<br/><span class="bold">${safeCompanyName}</span></div>
+      <div style="margin-top:2mm">N° Tél. après-vente:<br/><span class="bold">${safeCustomerPhone}</span></div>
       <div style="margin-top:2mm">Date de la commande:<br/><span class="bold">${format(new Date(order.created_at), 'dd/MM/yyyy')}</span></div>
-      <div style="margin-top:2mm">Description:<br/><span class="bold">${(order.remarks || '').replace(/\[\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\]/g, '').replace(/\[[^\]]*\]/g, '').replace(/LF:\S+/g, '').trim()}</span></div>
+      <div style="margin-top:2mm">Description:<br/><span class="bold">${safeRemarks}</span></div>
     </div>
     <div style="width:38mm;flex-shrink:0;display:flex;flex-direction:column">
       <div class="cell" style="flex:1;font-size:8px">
@@ -78,9 +103,9 @@ export function generateBordereauHtml(order: OrderWithItems): string {
           </tr></thead>
           <tbody>
             ${products.map(item => `<tr>
-              <td style="border:1px solid #000;padding:2px 3px;font-size:8px">${item.product_name}${item.variant ? ` (${item.variant})` : ''}</td>
-              <td style="border:1px solid #000;padding:2px 3px;text-align:center;font-size:8px">${(item as any).products?.sku || '--'}</td>
-              <td style="border:1px solid #000;padding:2px 3px;text-align:center;font-size:8px">${item.quantity}</td>
+              <td style="border:1px solid #000;padding:2px 3px;font-size:8px">${escapeHtml(item.product_name)}${item.variant ? ` (${escapeHtml(item.variant)})` : ''}</td>
+              <td style="border:1px solid #000;padding:2px 3px;text-align:center;font-size:8px">${escapeHtml((item as { products?: { sku?: string | null } }).products?.sku || '--')}</td>
+              <td style="border:1px solid #000;padding:2px 3px;text-align:center;font-size:8px">${escapeHtml(item.quantity)}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -95,17 +120,17 @@ export function generateBordereauHtml(order: OrderWithItems): string {
   <div class="row" style="background:#f5f5f5">
     <div class="cell border-r" style="width:30mm;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4mm">
       <div style="border:3px solid #000;border-radius:12px;width:24mm;height:22mm;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff">
-        <div style="font-size:32px;font-weight:bold;line-height:1">${wilayaCode}</div>
-        <div style="font-size:8px;font-weight:bold;margin-top:1px">${wilayaName}</div>
+        <div style="font-size:32px;font-weight:bold;line-height:1">${safeWilayaCode}</div>
+        <div style="font-size:8px;font-weight:bold;margin-top:1px">${safeWilayaName}</div>
       </div>
     </div>
     <div class="cell" style="flex:1">
       <p style="font-size:7.5px;color:#333;margin-bottom:3mm;line-height:1.4">
-        L'expéditeur est seul responsable du contenu du colis. En le confiant à ${companyName}, il certifie que ce contenu respecte les conditions d'expédition.
+        L'expéditeur est seul responsable du contenu du colis. En le confiant à ${safeCompanyName}, il certifie que ce contenu respecte les conditions d'expédition.
       </p>
       <div style="text-align:center">
         <img src="${barcodeUrl}" alt="Barcode" style="height:12mm;max-width:100%"/>
-        <div style="font-family:monospace;font-size:9px;font-weight:bold;letter-spacing:3px;margin-top:1mm">${trackingDisplay}</div>
+        <div style="font-family:monospace;font-size:9px;font-weight:bold;letter-spacing:3px;margin-top:1mm">${safeTrackingDisplay}</div>
       </div>
     </div>
   </div>

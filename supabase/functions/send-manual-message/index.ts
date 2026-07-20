@@ -39,6 +39,45 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+    const { data: roleData } = await supabase.rpc('get_user_role', { _user_id: user.id })
+    if (!roleData || !['admin', 'confirmateur'].includes(roleData)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { order_id, message, phone, media_url, media_type, file_name } = await req.json()
+    if (!order_id || !phone) throw new Error('Missing order_id or phone')
+    if (!message && !media_url) throw new Error('Missing message or media')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email, is_approved')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!profile?.is_approved) {
+      return new Response(JSON.stringify({ error: 'Account not approved' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const senderName = profile.full_name || profile.email || user.email || 'Agent'
+
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('order_number, customer_phone, assigned_agent')
+      .eq('id', order_id)
+      .single()
+    if (orderError || !orderData) throw new Error('Order not found')
+    if (roleData === 'confirmateur' && orderData.assigned_agent !== senderName) {
+      return new Response(JSON.stringify({ error: 'Order is not assigned to this agent' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const customerPhone = orderData.customer_phone
+
     // Get WaSender API key
     let WASENDER_API_KEY = Deno.env.get('WASENDER_API_KEY')
     const { data: wasenderConfig } = await supabase
@@ -51,21 +90,9 @@ Deno.serve(async (req) => {
     }
     if (!WASENDER_API_KEY) throw new Error('WASENDER_API_KEY not configured')
 
-    const { order_id, message, phone, media_url, media_type, file_name } = await req.json()
-    if (!order_id || !phone) throw new Error('Missing order_id or phone')
-    if (!message && !media_url) throw new Error('Missing message or media')
-
-    // Get sender name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, email')
-      .eq('id', user.id)
-      .maybeSingle()
-    const senderName = profile?.full_name || profile?.email || user.email || 'Agent'
-
     // Build WASender payload
-    const waPayload: Record<string, any> = {
-      to: formatPhoneForWhatsApp(phone),
+    const waPayload: Record<string, unknown> = {
+      to: formatPhoneForWhatsApp(customerPhone),
     }
 
     if (media_url && media_type) {
@@ -93,15 +120,6 @@ Deno.serve(async (req) => {
     })
     const waData = await waResponse.json()
     const sent = waResponse.ok
-
-    // Get order details
-    const { data: orderData } = await supabase
-      .from('orders')
-      .select('order_number, customer_phone')
-      .eq('id', order_id)
-      .single()
-
-    const customerPhone = orderData?.customer_phone || phone
 
     // Find existing log by phone number (not order_id) to keep all messages grouped
     const { data: log } = await supabase

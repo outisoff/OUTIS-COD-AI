@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Environment files must stay local. Keep only the documented template.
+.env
+.env.*
+!.env.example
+
+# Database exports contain private operational/customer data and credentials.
+public/database-*.sql
+database-*.sql
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

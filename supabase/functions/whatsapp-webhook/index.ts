@@ -339,12 +339,13 @@ Deno.serve(async (req) => {
     const storedToken = tokenConfig?.setting_value?.token
     const webhookSignature = req.headers.get('x-webhook-signature')
     
-    if (storedToken) {
-      // WaSender: require X-Webhook-Signature header when a token is configured.
-      if (!webhookSignature || webhookSignature !== storedToken) {
-        console.error('❌ Missing or invalid X-Webhook-Signature')
-        return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-      }
+    if (!storedToken) {
+      console.error('Webhook signature is not configured; refusing webhook traffic')
+      return new Response('Webhook not configured', { status: 503, headers: corsHeaders })
+    }
+    if (!webhookSignature || webhookSignature !== storedToken) {
+      console.error('❌ Missing or invalid X-Webhook-Signature')
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
     const body = JSON.parse(rawBody)

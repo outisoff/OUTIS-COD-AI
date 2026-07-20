@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createSignedOAuthState } from '../_shared/oauthState.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,7 @@ const corsHeaders = {
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+const OAUTH_STATE_SECRET = Deno.env.get('OAUTH_STATE_SECRET');
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -60,9 +62,10 @@ serve(async (req) => {
 
     const callbackUrl = `${SUPABASE_URL}/functions/v1/google-auth-callback`;
     
-    // Store the redirect URL AND user ID in state (base64 encoded)
-    // This allows the callback to save tokens for the correct user
-    const state = btoa(JSON.stringify({ redirectUrl, userId }));
+    if (!OAUTH_STATE_SECRET) {
+      throw new Error('OAUTH_STATE_SECRET not configured');
+    }
+    const state = await createSignedOAuthState({ redirectUrl, userId }, OAUTH_STATE_SECRET);
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
