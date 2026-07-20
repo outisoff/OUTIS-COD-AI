@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { History, User, Bot, Truck, Shield, Loader2 } from 'lucide-react';
+import { History, User, Bot, Truck, Shield, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
