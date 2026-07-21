@@ -111,7 +111,7 @@ function buildDailyOrders(orders: DashboardOrder[], from?: Date, to?: Date, date
   return days.map(({ rawDate: _rawDate, ...day }) => day);
 }
 
-export function useDashboardOrdersSource() {
+export function useDashboardOrdersSource(enabled: boolean = true) {
   return useQuery({
     queryKey: ['dashboard-source-v2'],
     queryFn: async () => {
@@ -125,7 +125,7 @@ export function useDashboardOrdersSource() {
             alert, assigned_agent, cancelled_at, commune, confirmed_at, created_at,
             customer_address, customer_id, customer_name, customer_phone, delivered_at,
             delivered_paid_at, delivery_company, delivery_fee, delivery_type, discount,
-            id, notes, order_number, pending_at, preparing_at, remarks, returned_at,
+            id, notes, order_number, pending_at, preparing_at, returned_at,
             shipped_at, source, status, store_id, total_price, tracking_number, updated_at, wilaya,
             order_items (
               created_at, id, order_id, product_id, product_name, quantity, unit_price, variant,
@@ -145,6 +145,7 @@ export function useDashboardOrdersSource() {
 
       return orders;
     },
+    enabled,
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
