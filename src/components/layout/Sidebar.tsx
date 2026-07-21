@@ -42,6 +42,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePendingOrdersCount } from '@/hooks/useOrders';
+import { useDashboardOrdersSource } from '@/hooks/useDashboardData';
+
+const PENDING_ORDER_STATUSES = new Set(['new', 'failed_1', 'failed_2', 'callback', 'to_reconfirm']);
 
 const commandesSubItems = [
   { name: 'Toutes les commandes', href: '/orders', icon: ShoppingCart },
@@ -102,7 +105,14 @@ export const Sidebar = memo(function Sidebar() {
   const { data: userRole } = useCurrentUserRole();
   const { data: stores } = useActiveStores();
   const { selectedStoreId, setSelectedStoreId } = useStoreFilter();
-  const { data: pendingOrders = 0 } = usePendingOrdersCount(selectedStoreId);
+  const isDashboard = location.pathname === '/dashboard';
+  const { data: dashboardOrders = [] } = useDashboardOrdersSource(isDashboard);
+  const { data: queriedPendingOrders = 0 } = usePendingOrdersCount(selectedStoreId, !isDashboard);
+  const pendingOrders = isDashboard
+    ? dashboardOrders.filter(order =>
+        PENDING_ORDER_STATUSES.has(order.status) && (!selectedStoreId || order.store_id === selectedStoreId)
+      ).length
+    : queriedPendingOrders;
 
   const isCommandesActive = commandesRoutes.includes(location.pathname);
   const [commandesOpen, setCommandesOpen] = useState(isCommandesActive);
