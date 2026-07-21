@@ -49,7 +49,7 @@ export function useOrders(enabled: boolean = true) {
   });
 }
 
-export function usePendingOrdersCount(storeId?: string | null) {
+export function usePendingOrdersCount(storeId?: string | null, enabled: boolean = true) {
   return useQuery({
     queryKey: ['orders', 'pending-count', storeId],
     queryFn: async () => {
@@ -69,6 +69,7 @@ export function usePendingOrdersCount(storeId?: string | null) {
 
       return count ?? 0;
     },
+    enabled,
     staleTime: 2 * 60_000,
     gcTime: 10 * 60_000,
     refetchOnWindowFocus: false,
